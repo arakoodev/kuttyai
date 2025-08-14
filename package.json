@@ -1,13 +1,13 @@
 {
   "name": "kuttyai",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "KuttyAI \u2014 Guardian child-safety orchestrator with hierarchical prompts, PerplexSearch, YouTube (comments sampling), Image Gallery, and Electron viewer.",
   "type": "module",
   "bin": {
     "kuttyai": "bin/kuttyai.js"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./src/index.js"
   },
   "files": [
     "dist",

@@ -4,8 +4,8 @@ import { Command } from "commander";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import { run } from "../dist/index.js";
-import { openInElectron } from "../dist/viewer/launch.js";
+import { run } from "../src/index.js";
+import { openInElectron } from "../viewer/launch.js";
 
 const program = new Command();
 program.name("kuttyai").description("KuttyAI — Guardian child-safety orchestrator").version("0.2.0");

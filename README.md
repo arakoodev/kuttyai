@@ -22,3 +22,7 @@ pnpm i
 pnpm test
 pnpm dev
 ```
+
+
+### Why no dist/
+This repo does **not** commit `dist/`. The CLI and exports point to **src/** for development (pnpm). When publishing to npm, the existing `prepublishOnly` build step can generate `dist/` if you choose to ship compiled artifacts.
