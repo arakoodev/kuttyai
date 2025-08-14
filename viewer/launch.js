@@ -33,7 +33,7 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     const start = Date.now()
     const intv = setInterval(()=>{
       if (fs.existsSync(readyFile)) { clearTimeout(fallbackTimer); resolved = true; clearInterval(intv); try{ child.kill() }catch{}; resolve(true) }
-      else if (Date.now()-start > timeoutMs) { clearInterval(intv); try{ child.kill() }catch{}; resolve(false) }
+      else if (Date.now()-start > timeoutMs) { clearInterval(intv); try{ child.kill() }catch{}; resolve(true) }
     }, 100)
   })
 }

@@ -1,28 +1,24 @@
-KuttyAI v0.2.0 — Electron viewer + child-safe tools (documentation summary; code not printed here).
 
 
-### Image tool isolation
-- The **Image Gallery** now defaults to **dataURI** mode for full network isolation.
-- The **Electron viewer** receives **policy** (allowlists, banned terms) from the KuttyAI process via **IPC** and enforces it before any content is shown.
-- The viewer is subordinate to the orchestrator: no load until policy handshake completes; navigation is blocked; non-allowlisted requests are denied at the main-process level.
+## Configuration (.env)
+Create a `.env` file at the project root (or export env vars) using the template in `.env.example`:
+
+- `OPENAI_API_KEY` — required for live LLM calls (PerplexSearch, captions, moderation).
+- `GOOGLE_CSE_ID` + `GOOGLE_API_KEY` — for allowlisted web & image search.
+- `YOUTUBE_API_KEY` — for YouTube search and comments sampling.
+- `KUTTYAI_MODEL` — optional model override.
+
+The CLI and viewer will auto-load `.env` on startup.
 
 
-## Profiles
-- **hardened (default):** fail-closed if `--domains` is empty, default image mode **dataURI**, strict CSP, navigation blocked, devtools off.
-- **dev:** easier local debugging; allows URL mode images and devtools.
-
-Use with CLI, e.g.:
+### Running via npx (local dev)
+Because this package isn’t published yet, use npx against the local folder:
 ```
-kuttyai gallery --profile hardened --input "friendly cats for kids" --banned ./examples/banned.json --domains ./examples/domains.json --electron
+npx --yes . perplexsearch --input "Why does it rain? Explain simply." --domains ./examples/domains.json --banned ./examples/banned.json
 ```
-
-## Dev flow (pnpm)
+(or)
 ```
-pnpm i
-pnpm test
-pnpm dev
+node bin/kuttyai.js perplexsearch --input "Why does it rain? Explain simply." --domains ./examples/domains.json --banned ./examples/banned.json
 ```
+After publishing to npm, `npx kuttyai ...` will work globally.
 
-
-### Why no dist/
-This repo does **not** commit `dist/`. The CLI and exports point to **src/** for development (pnpm). When publishing to npm, the existing `prepublishOnly` build step can generate `dist/` if you choose to ship compiled artifacts.

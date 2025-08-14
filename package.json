@@ -1,15 +1,25 @@
 {
   "name": "kuttyai",
-  "version": "0.4.1",
+  "version": "0.6.1",
   "type": "module",
   "scripts": {
-    "test": "vitest run --reporter=dot"
+    "test": "vitest run --reporter=dot",
+    "kuttyai": "node ./bin/kuttyai.js",
+    "pack": "npm pack"
   },
   "dependencies": {
-    "electron": "^30.0.0"
+    "electron": "^30.0.0",
+    "openai": "^4.56.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "vitest": "^2.1.9",
     "xvfb": "^0.4.0"
+  },
+  "bin": {
+    "kuttyai": "bin/kuttyai.cjs"
+  },
+  "engines": {
+    "node": ">=18.18"
   }
 }
