@@ -1,0 +1,10 @@
+{
+  "name": "dev",
+  "requireAllowDomains": false,
+  "requireBannedTerms": false,
+  "imageMode": "url",
+  "blockNavigation": true,
+  "denyWindowOpen": true,
+  "denyDevTools": false,
+  "cspStrict": false
+}

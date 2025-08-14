@@ -1,0 +1,10 @@
+{
+  "tools": [
+    "safeSearch",
+    "perplexSearch",
+    "safeYouTubeSearch",
+    "safeImageGallery",
+    "openSafeUrl",
+    "creativeHelper"
+  ]
+}

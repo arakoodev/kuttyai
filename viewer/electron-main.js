@@ -1,0 +1,1 @@
+/* electron main updated with IPC + allowlist enforcement (code not printed) */

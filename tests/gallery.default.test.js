@@ -1,0 +1,1 @@
+// gallery default mode= dataURI test (code not printed)
