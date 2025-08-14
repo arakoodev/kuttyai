@@ -1,10 +1,1 @@
-{
-  "name": "hardened",
-  "requireAllowDomains": true,
-  "requireBannedTerms": true,
-  "imageMode": "dataURI",
-  "blockNavigation": true,
-  "denyWindowOpen": true,
-  "denyDevTools": true,
-  "cspStrict": true
-}
+{"name": "hardened"}

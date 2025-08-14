@@ -1,19 +1,39 @@
-
-import { spawn } from "node:child_process";
-import path from "node:path";
-import fs from "node:fs";
-import os from "node:os";
+import { spawn } from 'node:child_process'
+import path from 'node:path'
+import os from 'node:os'
+import fs from 'node:fs'
 
 export function openInElectron(htmlString, policy={}, viewType='generic'){
-  const tmp = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`);
-  fs.writeFileSync(tmp, htmlString, "utf8");
-  const electron = process.platform === "win32" ? "node_modules/.bin/electron.cmd" : "node_modules/.bin/electron";
-  const main = path.join(path.dirname(new URL(import.meta.url).pathname), "electron-main.js");
-  const child = spawn(electron, [main], {
-    stdio: "ignore",
-    env: { ...process.env, KUTTYAI_VIEW_FILE: tmp },
+  const tmpHtml = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
+  fs.writeFileSync(tmpHtml, htmlString, 'utf8')
+  const electronBin = process.platform === 'win32' ? 'node_modules/.bin/electron.cmd' : 'node_modules/.bin/electron'
+  const mainPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+  const child = spawn(electronBin, [mainPath], {
+    stdio: 'ignore',
+    env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}) },
     detached: true,
     cwd: process.cwd()
-  });
-  child.unref();
+  })
+  child.unref()
+}
+
+export function openInElectronTest(htmlString, policy={}, viewType='generic', timeoutMs=8000){
+  return new Promise((resolve) => {
+    const tmpHtml = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
+    const readyFile = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
+    fs.writeFileSync(tmpHtml, htmlString, 'utf8')
+    const electronBin = process.platform === 'win32' ? 'node_modules/.bin/electron.cmd' : 'node_modules/.bin/electron'
+    const mainPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+    const child = spawn(electronBin, [mainPath], {
+      stdio: 'ignore',
+      env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}), KUTTYAI_READY_FILE: readyFile, ELECTRON_DISABLE_SECURITY_WARNINGS: '1' },
+      detached: false,
+      cwd: process.cwd()
+    })
+    const start = Date.now()
+    const intv = setInterval(()=>{
+      if (fs.existsSync(readyFile)) { clearTimeout(fallbackTimer); resolved = true; clearInterval(intv); try{ child.kill() }catch{}; resolve(true) }
+      else if (Date.now()-start > timeoutMs) { clearInterval(intv); try{ child.kill() }catch{}; resolve(false) }
+    }, 100)
+  })
 }

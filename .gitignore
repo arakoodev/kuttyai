@@ -1,39 +1,16 @@
-# Node & pnpm
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-error.log*
-
-# Builds / caches
 dist/
 build/
-tmp/
-temp/
-.cache/
-.eslintcache
-.nyc_output/
 coverage/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Env / secrets
-.env
-.env.*
+.cache/
+*.log
+.env*
 !.env.example
-
-# IDE
-.idea/
 .vscode/
-
-# Electron
-*.asar
+.idea/
 out/
-
-# Tests
-.playwright/
+*.asar
 test-results/
+playwright-report/
+.DS_Store

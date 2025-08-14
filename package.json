@@ -1,42 +1,15 @@
 {
   "name": "kuttyai",
-  "version": "0.3.1",
-  "description": "KuttyAI \u2014 Guardian child-safety orchestrator with hierarchical prompts, PerplexSearch, YouTube (comments sampling), Image Gallery, and Electron viewer.",
+  "version": "0.4.1",
   "type": "module",
-  "bin": {
-    "kuttyai": "bin/kuttyai.js"
-  },
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "files": [
-    "dist",
-    "bin",
-    "README.md",
-    "LICENSE",
-    "examples",
-    "kuttyai-prompt.v1.4.xml",
-    "AGENTS.v1.2.md",
-    "viewer"
-  ],
   "scripts": {
-    "build": "node --enable-source-maps ./scripts/build.js",
-    "prepublishOnly": "npm run build",
-    "view": "node ./dist/viewer/launch.js",
-    "test": "vitest run --reporter=dot",
-    "test:ci": "vitest run --reporter=dot",
-    "dev": "node ./bin/kuttyai.js --help"
+    "test": "vitest run --reporter=dot"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "openai": "^4.56.0",
-    "yaml": "^2.5.0",
-    "xml2js": "^0.6.2",
-    "zod": "^3.23.8",
-    "strip-json-comments": "^5.0.1",
     "electron": "^30.0.0"
   },
   "devDependencies": {
-    "vitest": "^2.0.5"
+    "vitest": "^2.1.9",
+    "xvfb": "^0.4.0"
   }
 }
