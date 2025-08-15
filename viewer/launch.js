@@ -30,10 +30,11 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
       detached: false,
       cwd: process.cwd()
     })
-    const start = Date.now()
+    let resolved = false
+    const cleanup = () => { if (resolved) return; resolved = true; try { child.kill() } catch {}; resolve(true) }
     const intv = setInterval(()=>{
-      if (fs.existsSync(readyFile)) { clearTimeout(fallbackTimer); resolved = true; clearInterval(intv); try{ child.kill() }catch{}; resolve(true) }
-      else if (Date.now()-start > timeoutMs) { clearInterval(intv); try{ child.kill() }catch{}; resolve(true) }
+      if (fs.existsSync(readyFile)) { clearInterval(intv); clearTimeout(timer); cleanup() }
     }, 100)
+    const timer = setTimeout(()=>{ clearInterval(intv); cleanup() }, timeoutMs)
   })
 }

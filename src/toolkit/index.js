@@ -90,6 +90,56 @@ export async function safeYouTubeSearch(args={}, ctx={}){
   return { safe:true, video: { title: first.snippet?.title || 'Video', videoId, url: urlFull } };
 }
 
+export async function reviewYouTubeSafety(video={}, ctx={}){
+  if (failClosed(ctx)) return { safe:false, decision:'block', reason:'Allowlist required (provide --domains)' };
+
+  const banned = (ctx.policy?.bannedTerms || []).map(t=>String(t).toLowerCase());
+  const title = String(video?.title || '');
+  const hay = title.toLowerCase();
+  for (const term of banned){
+    if (hay.includes(term)) return { safe:false, decision:'block', reason:`banned term: ${term}`, sample:[], llm:'' };
+  }
+
+  let comments = [];
+  if (process.env.KUTTYAI_TEST_MOCK==='1'){
+    comments = ['Love this video for kids!'];
+    return { safe:true, decision:'allow', sample: comments, llm:'allow' };
+  }
+
+  const key = process.env.YOUTUBE_API_KEY;
+  if (key && video?.videoId){
+    try {
+      const url = new URL('https://www.googleapis.com/youtube/v3/commentThreads');
+      url.searchParams.set('part','snippet');
+      url.searchParams.set('videoId', video.videoId);
+      url.searchParams.set('maxResults','5');
+      url.searchParams.set('key', key);
+      const r = await fetch(url);
+      if (r.ok){
+        const data = await r.json();
+        comments = (data.items||[]).map(it => it.snippet?.topLevelComment?.snippet?.textDisplay || '').filter(Boolean);
+      }
+    } catch {}
+  }
+
+  let decision = 'allow';
+  let llm = '';
+  try {
+    const system = ctx.prompts.guardian || 'You judge if a video is safe for kids based on title and comments. Reply with either "allow" or "block".';
+    const session = ctx.prompts.youtube || '';
+    const messages = [
+      { role:'system', content: system },
+      { role:'user', content:`${session}\nTitle: ${title}\nComments:\n${comments.join('\n')}` }
+    ];
+    const resp = await ctx.openai.chat.completions.create({ model: ctx.model, messages, temperature:0 });
+    llm = resp?.choices?.[0]?.message?.content?.trim().toLowerCase() || '';
+    decision = llm.includes('block') ? 'block' : 'allow';
+  } catch {}
+
+  if (decision !== 'allow') return { safe:false, decision, sample: comments, llm };
+  return { safe:true, decision, sample: comments, llm };
+}
+
 export async function openSafeUrl(args={}, ctx={}){
   if (failClosed(ctx)) return { safe:false, reason:'Allowlist required (provide --domains)', action:'ASK_ALTERNATIVE' };
   const u = new URL(String(args?.url || ''));

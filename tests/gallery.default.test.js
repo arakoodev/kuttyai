@@ -21,7 +21,7 @@ describe('safeImageGallery defaults to dataURI with allowlist', () => {
   })
   afterEach(()=>{ global.fetch = ORIG })
   it('returns galleryHtml with data: URIs', async () => {
-    const ctx = { policy: { allowDomains: ['images.nasa.gov'], bannedTerms: [] }, openai: null, model: 'test', prompts: {} }
+    const ctx = { policy: { allowDomains: ['images.nasa.gov'], bannedTerms: [] }, openai: null, model: 'test', prompts: {}, keys:{ googleKey:'x', googleCx:'y' } }
     const out = await toolkit.safeImageGallery({ query: 'rainbows for kids' }, ctx)
     expect(out.safe).toBe(true)
     expect(typeof out.galleryHtml).toBe('string')
