@@ -25,7 +25,7 @@ function toWinPath(p){
   return p
 }
 
-function resolveElectronBin(){
+export function resolveElectronBin(){
   try {
     const pkgPath = path.dirname(require.resolve('electron/package.json'))
     const binName = fs.readFileSync(path.join(pkgPath, 'path.txt'), 'utf8').trim()
@@ -128,6 +128,10 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     const intv = setInterval(()=>{
       if (fs.existsSync(readyFile)) { clearInterval(intv); clearTimeout(timer); cleanup(true) }
     }, 100)
-    const timer = setTimeout(()=>{ clearInterval(intv); cleanup(false) }, timeoutMs)
+    const timer = setTimeout(()=>{ 
+      clearInterval(intv); 
+      console.error('Electron did not signal READY within timeout');
+      cleanup(false) 
+    }, timeoutMs)
   })
 }
