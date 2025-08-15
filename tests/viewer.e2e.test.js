@@ -1,8 +1,9 @@
 import { describe, it, expect, afterAll } from 'vitest'
-import { openInElectronTest } from '../viewer/launch.js'
+import { openInElectronTest, resolveElectronBin } from '../viewer/launch.js'
 
 let xvfbProc = null
 let hasXvfb = true
+let hasElectron = !!resolveElectronBin()
 if (!process.env.DISPLAY) {
   try {
     const { default: Xvfb } = await import('xvfb')
@@ -14,13 +15,17 @@ if (!process.env.DISPLAY) {
   }
 }
 
+if (!hasElectron) {
+  console.warn('Electron binary missing; skipping viewer e2e.')
+}
+
 afterAll(async () => {
   if (xvfbProc) {
     try { xvfbProc.stopSync() } catch {}
   }
 })
 
-const testFn = hasXvfb ? it : it.skip
+const testFn = (hasXvfb && hasElectron) ? it : it.skip
 
 describe('Electron viewer e2e (test mode)', () => {
   testFn('spawns and signals READY with policy', async () => {

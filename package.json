@@ -5,7 +5,8 @@
   "scripts": {
     "test": "COLUMNS=80 vitest run --reporter=dot",
     "kuttyai": "node ./bin/kuttyai.js",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "postinstall": "node ./scripts/postinstall-wsl.js"
   },
   "dependencies": {
     "electron": "^30.0.0",
