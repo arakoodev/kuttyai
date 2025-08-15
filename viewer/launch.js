@@ -36,8 +36,11 @@ export function resolveElectronBin(){
   }
 }
 
+let viewerProcess
+
 export function openInElectron(htmlString, policy={}, viewType='generic'){
-  const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
+  const baseDirRaw = usingWinElectron() ? path.dirname(new URL(import.meta.url).pathname) : os.tmpdir()
+  const tmpHtmlRaw = path.join(baseDirRaw, `kuttyai_view_${Date.now()}.html`)
   fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
   const electronBinRaw = resolveElectronBin()
   if (!electronBinRaw) {
@@ -56,32 +59,26 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
   try {
     const child = spawn(electronBin, args, {
       stdio: ['ignore', 'ignore', 'pipe'],
-      env,
-      detached: true
+      env
     })
+    viewerProcess = child
     let stderr = ''
     if (child.stderr) {
       child.stderr.setEncoding('utf8')
       child.stderr.on('data', chunk => { stderr += chunk })
     }
-    let done = false
-    const finish = () => {
-      if (done) return
-      done = true
-      if (child.stderr) child.stderr.unref()
+    const cleanup = () => {
+      if (viewerProcess && !viewerProcess.killed) {
+        try { viewerProcess.kill() } catch {}
+      }
     }
-    const timer = setTimeout(() => {
-      finish()
-      child.unref()
-    }, 3000)
+    process.once('exit', cleanup)
+    process.once('SIGINT', () => { cleanup(); process.exit(130) })
+    process.once('SIGTERM', () => { cleanup(); process.exit(143) })
     child.on('error', err => {
-      clearTimeout(timer)
-      finish()
       console.error('Failed to launch Electron:', err.message)
     })
     child.on('exit', code => {
-      clearTimeout(timer)
-      finish()
       if (code !== 0) {
         const msg = stderr.trim()
         console.error(`Electron exited with code ${code}${msg ? `: ${msg}` : ''}`)
@@ -94,8 +91,9 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
 
 export function openInElectronTest(htmlString, policy={}, viewType='generic', timeoutMs=8000){
   return new Promise((resolve) => {
-    const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
-    const readyFileRaw = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
+    const baseDirRaw = usingWinElectron() ? path.dirname(new URL(import.meta.url).pathname) : os.tmpdir()
+    const tmpHtmlRaw = path.join(baseDirRaw, `kuttyai_view_${Date.now()}.html`)
+    const readyFileRaw = path.join(baseDirRaw, `kuttyai_ready_${Date.now()}.txt`)
     fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
     const electronBinRaw = resolveElectronBin()
     if (!electronBinRaw) {
