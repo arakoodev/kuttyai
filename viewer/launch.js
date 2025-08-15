@@ -46,16 +46,18 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
   }
   const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
   const useWin = usingWinElectron()
-  const electronBin = useWin ? toWinPath(electronBinRaw) : electronBinRaw
+  const electronBin = electronBinRaw
   const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
   const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
-  const cwd = useWin ? toWinPath(process.cwd()) : process.cwd()
+  const args = [mainPath]
+  if (useWin) args.push('--no-sandbox')
+  const env = { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}) }
+  if (useWin && !env.DISPLAY) env.DISPLAY = ':0'
   try {
-    const child = spawn(electronBin, [mainPath], {
+    const child = spawn(electronBin, args, {
       stdio: ['ignore', 'ignore', 'pipe'],
-      env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}) },
-      detached: true,
-      cwd
+      env,
+      detached: true
     })
     let stderr = ''
     if (child.stderr) {
@@ -103,18 +105,20 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     }
     const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
     const useWin = usingWinElectron()
-    const electronBin = useWin ? toWinPath(electronBinRaw) : electronBinRaw
+    const electronBin = electronBinRaw
     const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
     const readyFile = useWin ? toWinPath(readyFileRaw) : readyFileRaw
     const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
-    const cwd = useWin ? toWinPath(process.cwd()) : process.cwd()
+    const args = [mainPath]
+    if (useWin) args.push('--no-sandbox')
+    const env = { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}), KUTTYAI_READY_FILE: readyFile, ELECTRON_DISABLE_SECURITY_WARNINGS: '1' }
+    if (useWin && !env.DISPLAY) env.DISPLAY = ':0'
     let child
     try {
-      child = spawn(electronBin, [mainPath], {
+      child = spawn(electronBin, args, {
         stdio: 'ignore',
-        env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}), KUTTYAI_READY_FILE: readyFile, ELECTRON_DISABLE_SECURITY_WARNINGS: '1' },
-        detached: false,
-        cwd
+        env,
+        detached: false
       })
     } catch (e) {
       console.error('Failed to launch Electron:', e.message)
