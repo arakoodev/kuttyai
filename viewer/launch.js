@@ -26,17 +26,23 @@ function toWinPath(p){
 }
 
 function resolveElectronBin(){
-  const winBin = 'node_modules/.bin/electron.cmd'
-  const linuxBin = 'node_modules/.bin/electron'
-  if (process.platform === 'win32') return winBin
-  if (isWsl && fs.existsSync(winBin)) return winBin
-  return linuxBin
+  try {
+    const pkgPath = path.dirname(require.resolve('electron/package.json'))
+    const binRel = fs.readFileSync(path.join(pkgPath, 'path.txt'), 'utf8').trim()
+    return path.join(pkgPath, binRel)
+  } catch {
+    return null
+  }
 }
 
 export function openInElectron(htmlString, policy={}, viewType='generic'){
   const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
   fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
   const electronBin = resolveElectronBin()
+  if (!electronBin) {
+    console.error('Electron binary not found; try running `npm install` again')
+    return
+  }
   const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
   const useWin = usingWinElectron()
   const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
@@ -88,6 +94,11 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     const readyFileRaw = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
     fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
     const electronBin = resolveElectronBin()
+    if (!electronBin) {
+      console.error('Electron binary not found; try running `npm install` again')
+      resolve(false)
+      return
+    }
     const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
     const useWin = usingWinElectron()
     const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
