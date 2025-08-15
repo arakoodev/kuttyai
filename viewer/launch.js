@@ -58,8 +58,10 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
   if (useWin && !env.DISPLAY) env.DISPLAY = ':0'
   try {
     const child = spawn(electronBin, args, {
-      stdio: ['ignore', 'ignore', 'pipe'],
-      env
+      stdio: ['pipe', 'ignore', 'pipe'],
+      env,
+      detached: false,
+      shell: false
     })
     viewerProcess = child
     let stderr = ''
@@ -70,6 +72,11 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
     const cleanup = () => {
       if (viewerProcess && !viewerProcess.killed) {
         try { viewerProcess.kill() } catch {}
+        setTimeout(() => {
+          if (viewerProcess && !viewerProcess.killed) {
+            try { viewerProcess.kill('SIGKILL') } catch {}
+          }
+        }, 1000)
       }
     }
     process.once('exit', cleanup)
@@ -114,9 +121,10 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     let child
     try {
       child = spawn(electronBin, args, {
-        stdio: 'ignore',
+        stdio: ['pipe', 'ignore', 'pipe'],
         env,
-        detached: false
+        detached: false,
+        shell: false
       })
     } catch (e) {
       console.error('Failed to launch Electron:', e.message)
