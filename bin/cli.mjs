@@ -57,14 +57,20 @@ export async function main(argv){
     if (res.review) console.log('Safety:', res.review.decision)
     if (shouldView){
       const html = makePerplexHtml(res.answer, res.sources)
-      openInElectron(html, policy, 'perplexsearch')
+      if (!openInElectron(html, policy, 'perplexsearch')) {
+        console.error('Failed to launch Electron viewer')
+      }
     }
   } else if (cmd === 'gallery'){
     const res = await safeImageGallery({ query: opts.input || '' }, ctx)
     if (!res.safe){ console.error(res.reason || 'unsafe'); process.exitCode = 1; return }
     console.log('Gallery images:')
     for (const im of res.images) console.log('-', im.url)
-    if (shouldView && res.galleryHtml) openInElectron(res.galleryHtml, policy, 'gallery')
+    if (shouldView && res.galleryHtml) {
+      if (!openInElectron(res.galleryHtml, policy, 'gallery')) {
+        console.error('Failed to launch Electron viewer')
+      }
+    }
   } else if (cmd === 'youtube'){
     const res = await safeYouTubeSearch({ query: opts.input || '' }, ctx)
     if (!res.safe){ console.error(res.reason || 'unsafe'); process.exitCode = 1; return }
@@ -74,7 +80,9 @@ export async function main(argv){
     console.log('Safety:', review.decision)
     if (shouldView){
       const open = await openSafeUrl({ url: res.video.url }, ctx)
-      if (open.safe) openInElectron(open.embedHtml, policy, 'youtube')
+      if (open.safe && !openInElectron(open.embedHtml, policy, 'youtube')) {
+        console.error('Failed to launch Electron viewer')
+      }
     }
   } else {
     console.error('Unknown command')
