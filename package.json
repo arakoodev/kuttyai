@@ -3,7 +3,7 @@
   "version": "0.6.3",
   "type": "module",
   "scripts": {
-    "test": "vitest run --reporter=dot",
+    "test": "COLUMNS=80 vitest run --reporter=dot",
     "kuttyai": "node ./bin/kuttyai.js",
     "pack": "npm pack"
   },

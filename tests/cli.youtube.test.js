@@ -25,9 +25,25 @@ describe('CLI youtube (mock mode)', () => {
       '--input','water cycle song for kids',
       '--domains', domainsPath,
       '--banned','examples/banned.json'
-    ], { KUTTYAI_TEST_MOCK: '1', YOUTUBE_API_KEY: 'test' })
+    ], { KUTTYAI_TEST_MOCK: '1', YOUTUBE_API_KEY: 'test', OPENAI_API_KEY:'test', CI:'1' })
     expect(res.code).toBe(0)
     expect(res.out).toMatch(/Video:/)
+    expect(res.out).toMatch(/Safety: allow/)
     expect(res.out).toMatch(/https?:\/\/www\.youtube\.com\/watch\?v=/)
+  }, 20000)
+
+  it('blocks video when title has banned term', async () => {
+    const domainsPath = path.resolve('tests/tmp.domains.youtube.json')
+    fs.writeFileSync(domainsPath, JSON.stringify({ domains: ['youtube.com','www.youtube.com','youtu.be'] }, null, 2))
+    const bannedPath = path.resolve('tests/tmp.banned.youtube.json')
+    fs.writeFileSync(bannedPath, JSON.stringify({ banned: ['water'] }, null, 2))
+    const res = await run(BIN, [
+      'youtube',
+      '--input','water cycle song for kids',
+      '--domains', domainsPath,
+      '--banned', bannedPath
+    ], { KUTTYAI_TEST_MOCK: '1', YOUTUBE_API_KEY: 'test', OPENAI_API_KEY:'test', CI:'1' })
+    expect(res.code).toBe(1)
+    expect(res.err).toMatch(/banned term/i)
   }, 20000)
 })

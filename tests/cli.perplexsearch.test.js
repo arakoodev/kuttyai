@@ -25,9 +25,25 @@ describe('CLI perplexsearch (mock mode)', () => {
       '--input','Why does it rain? Explain simply.',
       '--domains', domainsPath,
       '--banned','examples/banned.json'
-    ], { KUTTYAI_TEST_MOCK: '1', OPENAI_API_KEY: 'test', GOOGLE_API_KEY: 'test', GOOGLE_CSE_ID: 'test' })
+    ], { KUTTYAI_TEST_MOCK: '1', OPENAI_API_KEY: 'test', GOOGLE_API_KEY: 'test', GOOGLE_CSE_ID: 'test', CI:'1' })
     expect(res.code).toBe(0)
     expect(res.out).toMatch(/Sources:/)
+    expect(res.out).toMatch(/Safety: allow/)
     expect(res.out).toMatch(/https?:\/\/kids\.nationalgeographic\.com/)
+  }, 20000)
+
+  it('fails when answer contains banned term', async () => {
+    const domainsPath = path.resolve('tests/tmp.domains.json')
+    fs.writeFileSync(domainsPath, JSON.stringify({ domains: ['kids.nationalgeographic.com','images.nasa.gov','www.nasa.gov','nasa.gov'] }, null, 2))
+    const bannedPath = path.resolve('tests/tmp.banned.perplex.json')
+    fs.writeFileSync(bannedPath, JSON.stringify({ banned: ['rain'] }, null, 2))
+    const res = await run(BIN, [
+      'perplexsearch',
+      '--input','Why does it rain? Explain simply.',
+      '--domains', domainsPath,
+      '--banned', bannedPath
+    ], { KUTTYAI_TEST_MOCK: '1', OPENAI_API_KEY: 'test', GOOGLE_API_KEY: 'test', GOOGLE_CSE_ID: 'test', CI:'1' })
+    expect(res.code).toBe(1)
+    expect(res.err).toMatch(/banned term/i)
   }, 20000)
 })

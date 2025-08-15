@@ -25,7 +25,7 @@ describe('CLI gallery (mock mode)', () => {
       '--input','rainbow drawings for kids',
       '--domains', domainsPath,
       '--banned','examples/banned.json'
-    ], { KUTTYAI_TEST_MOCK: '1', GOOGLE_API_KEY: 'test', GOOGLE_CSE_ID: 'test' })
+    ], { KUTTYAI_TEST_MOCK: '1', GOOGLE_API_KEY: 'test', GOOGLE_CSE_ID: 'test', CI:'1' })
     expect(res.code).toBe(0)
     expect(res.out).toMatch(/Gallery images:/)
     expect(res.out).toMatch(/https?:\/\/images\.nasa\.gov\//)
