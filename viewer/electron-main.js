@@ -2,6 +2,7 @@ import { app, BrowserWindow, session } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 
+const VIEW_HTML = process.env.KUTTYAI_VIEW_HTML
 const VIEW_FILE = process.env.KUTTYAI_VIEW_FILE
 const POLICY = safeParse(process.env.KUTTYAI_POLICY_JSON) || { allowDomains: [], bannedTerms: [] }
 const READY_FILE = process.env.KUTTYAI_READY_FILE
@@ -31,10 +32,13 @@ function createWindow(){
     return cb({ cancel:false })
   })
 
-  if (VIEW_FILE && fs.existsSync(VIEW_FILE)) win.loadFile(VIEW_FILE)
-  else {
+  if (VIEW_HTML) {
+    win.loadURL(`data:text/html;base64,${VIEW_HTML}`)
+  } else if (VIEW_FILE && fs.existsSync(VIEW_FILE)) {
+    win.loadFile(VIEW_FILE)
+  } else {
     const tmp = path.join(app.getPath('temp'), 'kuttyai_fallback.html')
-    fs.writeFileSync(tmp, '<!doctype html><html><body>Missing view file</body></html>', 'utf8')
+    fs.writeFileSync(tmp, '<!doctype html><html><body>Missing view content</body></html>', 'utf8')
     win.loadFile(tmp)
   }
 

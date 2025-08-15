@@ -1,7 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process'
-import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
@@ -27,31 +28,46 @@ function toWinPath(p){
   return p
 }
 
+let viewerProcess = null
+
+function setupCleanup(){
+  const cleanup = () => {
+    if (viewerProcess && !viewerProcess.killed){
+      try { viewerProcess.kill('SIGKILL') } catch {}
+      viewerProcess = null
+    }
+  }
+
+  process.removeAllListeners('exit')
+  process.removeAllListeners('SIGINT')
+  process.removeAllListeners('SIGTERM')
+
+  process.once('exit', cleanup)
+  process.once('SIGINT', () => { cleanup(); process.exit(130) })
+  process.once('SIGTERM', () => { cleanup(); process.exit(143) })
+}
+
 export function resolveElectronBin(){
   const res = spawnSync('npx', ['--no-install', 'electron', '--version'], { stdio: 'ignore' })
   return res.status === 0 ? 'npx' : null
 }
 
 export function openInElectron(htmlString, policy={}, viewType='generic'){
-  const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
-  fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
-
   const electronBin = resolveElectronBin()
   if (!electronBin){
     console.error('Electron is not installed; run `npm install` and try again')
     return false
   }
 
-  const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+  const mainPathRaw = path.join(path.dirname(fileURLToPath(import.meta.url)), 'electron-main.js')
   const useWin = usingWinElectron()
-  const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
   const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
 
   const args = ['electron', mainPath]
   if (useWin || isWsl) args.push('--no-sandbox')
 
   const env = { ...process.env,
-    KUTTYAI_VIEW_FILE: tmpHtml,
+    KUTTYAI_VIEW_HTML: Buffer.from(htmlString, 'utf8').toString('base64'),
     KUTTYAI_VIEW_TYPE: viewType,
     KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}),
     ELECTRON_DISABLE_SECURITY_WARNINGS: '1'
@@ -62,29 +78,24 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
     const child = spawn(electronBin, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env,
-      detached: true
+      detached: false
     })
+
+    viewerProcess = child
+    setupCleanup()
 
     child.stdout?.setEncoding('utf8')
     child.stdout?.on('data', d => console.log('Electron:', d.trim()))
 
     child.stderr?.setEncoding('utf8')
-    let lastErr = ''
-    child.stderr?.on('data', d => { lastErr = d.trim(); console.error('Electron stderr:', lastErr) })
-
-    const timer = setTimeout(()=>child.unref(), 3000)
+    child.stderr?.on('data', d => console.error('Electron stderr:', d.trim()))
 
     child.on('error', err => {
-      clearTimeout(timer)
       console.error('Failed to launch Electron:', err.message)
     })
 
-    child.on('exit', (code, signal) => {
-      clearTimeout(timer)
-      if (code !== 0) {
-        const extra = lastErr ? `: ${lastErr}` : ''
-        console.error(`Electron exited with code ${code}${extra}`)
-      }
+    child.on('exit', code => {
+      if (code !== 0) console.error(`Electron exited with code ${code}`)
     })
 
     return true
@@ -103,13 +114,9 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
       return
     }
 
-    const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
     const readyFileRaw = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
-    fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
-
-    const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+    const mainPathRaw = path.join(path.dirname(fileURLToPath(import.meta.url)), 'electron-main.js')
     const useWin = usingWinElectron()
-    const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
     const readyFile = useWin ? toWinPath(readyFileRaw) : readyFileRaw
     const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
 
@@ -117,7 +124,7 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     if (useWin || isWsl) args.push('--no-sandbox')
 
     const env = { ...process.env,
-      KUTTYAI_VIEW_FILE: tmpHtml,
+      KUTTYAI_VIEW_HTML: Buffer.from(htmlString, 'utf8').toString('base64'),
       KUTTYAI_VIEW_TYPE: viewType,
       KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}),
       KUTTYAI_READY_FILE: readyFile,
@@ -144,15 +151,14 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     child.on('error', err => { console.error('Failed to launch Electron:', err.message); cleanup(false) })
     child.on('exit', code => { if (code !== 0) { console.error(`Electron exited with code ${code}`); cleanup(false) } })
 
-    const intv = setInterval(()=>{
+    const intv = setInterval(() => {
       if (fs.existsSync(readyFile)) { clearInterval(intv); clearTimeout(timer); cleanup(true) }
     }, 100)
 
-    const timer = setTimeout(()=>{
+    const timer = setTimeout(() => {
       clearInterval(intv)
       console.error('Electron did not signal READY within timeout')
       cleanup(false)
     }, timeoutMs)
   })
 }
-
