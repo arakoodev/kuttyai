@@ -28,8 +28,9 @@ function toWinPath(p){
 function resolveElectronBin(){
   try {
     const pkgPath = path.dirname(require.resolve('electron/package.json'))
-    const binRel = fs.readFileSync(path.join(pkgPath, 'path.txt'), 'utf8').trim()
-    return path.join(pkgPath, binRel)
+    const binName = fs.readFileSync(path.join(pkgPath, 'path.txt'), 'utf8').trim()
+    const full = path.join(pkgPath, 'dist', binName)
+    return fs.existsSync(full) ? full : null
   } catch {
     return null
   }
@@ -38,13 +39,14 @@ function resolveElectronBin(){
 export function openInElectron(htmlString, policy={}, viewType='generic'){
   const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
   fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
-  const electronBin = resolveElectronBin()
-  if (!electronBin) {
+  const electronBinRaw = resolveElectronBin()
+  if (!electronBinRaw) {
     console.error('Electron binary not found; try running `npm install` again')
     return
   }
   const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
   const useWin = usingWinElectron()
+  const electronBin = useWin ? toWinPath(electronBinRaw) : electronBinRaw
   const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
   const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
   const cwd = useWin ? toWinPath(process.cwd()) : process.cwd()
@@ -93,14 +95,15 @@ export function openInElectronTest(htmlString, policy={}, viewType='generic', ti
     const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
     const readyFileRaw = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
     fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
-    const electronBin = resolveElectronBin()
-    if (!electronBin) {
+    const electronBinRaw = resolveElectronBin()
+    if (!electronBinRaw) {
       console.error('Electron binary not found; try running `npm install` again')
       resolve(false)
       return
     }
     const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
     const useWin = usingWinElectron()
+    const electronBin = useWin ? toWinPath(electronBinRaw) : electronBinRaw
     const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
     const readyFile = useWin ? toWinPath(readyFileRaw) : readyFileRaw
     const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
