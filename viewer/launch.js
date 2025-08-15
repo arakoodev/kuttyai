@@ -1,28 +1,53 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+
+const isWsl = process.platform === 'linux' && (process.env.WSL_DISTRO_NAME || os.release().toLowerCase().includes('microsoft'))
+
+function usingWinElectron(){
+  if (!isWsl) return false
+  try {
+    const pkg = require.resolve('electron/package.json')
+    const bin = fs.readFileSync(path.join(path.dirname(pkg), 'path.txt'), 'utf8').trim().toLowerCase()
+    return bin.endsWith('electron.exe')
+  } catch { return false }
+}
+
+function toWinPath(p){
+  try {
+    const out = spawnSync('wslpath', ['-w', p], { encoding:'utf8' })
+    if (out.status === 0) return out.stdout.trim()
+  } catch {}
+  return p
+}
 
 function resolveElectronBin(){
   const winBin = 'node_modules/.bin/electron.cmd'
   const linuxBin = 'node_modules/.bin/electron'
-  const isWsl = process.platform === 'linux' && (process.env.WSL_DISTRO_NAME || os.release().toLowerCase().includes('microsoft'))
   if (process.platform === 'win32') return winBin
   if (isWsl && fs.existsSync(winBin)) return winBin
   return linuxBin
 }
 
 export function openInElectron(htmlString, policy={}, viewType='generic'){
-  const tmpHtml = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
-  fs.writeFileSync(tmpHtml, htmlString, 'utf8')
+  const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
+  fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
   const electronBin = resolveElectronBin()
-  const mainPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+  const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+  const useWin = usingWinElectron()
+  const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
+  const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
+  const cwd = useWin ? toWinPath(process.cwd()) : process.cwd()
   try {
     const child = spawn(electronBin, [mainPath], {
       stdio: ['ignore', 'ignore', 'pipe'],
       env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}) },
       detached: true,
-      cwd: process.cwd()
+      cwd
     })
     let stderr = ''
     if (child.stderr) {
@@ -59,18 +84,23 @@ export function openInElectron(htmlString, policy={}, viewType='generic'){
 
 export function openInElectronTest(htmlString, policy={}, viewType='generic', timeoutMs=8000){
   return new Promise((resolve) => {
-    const tmpHtml = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
-    const readyFile = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
-    fs.writeFileSync(tmpHtml, htmlString, 'utf8')
+    const tmpHtmlRaw = path.join(os.tmpdir(), `kuttyai_view_${Date.now()}.html`)
+    const readyFileRaw = path.join(os.tmpdir(), `kuttyai_ready_${Date.now()}.txt`)
+    fs.writeFileSync(tmpHtmlRaw, htmlString, 'utf8')
     const electronBin = resolveElectronBin()
-    const mainPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+    const mainPathRaw = path.join(path.dirname(new URL(import.meta.url).pathname), 'electron-main.js')
+    const useWin = usingWinElectron()
+    const tmpHtml = useWin ? toWinPath(tmpHtmlRaw) : tmpHtmlRaw
+    const readyFile = useWin ? toWinPath(readyFileRaw) : readyFileRaw
+    const mainPath = useWin ? toWinPath(mainPathRaw) : mainPathRaw
+    const cwd = useWin ? toWinPath(process.cwd()) : process.cwd()
     let child
     try {
       child = spawn(electronBin, [mainPath], {
         stdio: 'ignore',
         env: { ...process.env, KUTTYAI_VIEW_FILE: tmpHtml, KUTTYAI_VIEW_TYPE: viewType, KUTTYAI_POLICY_JSON: JSON.stringify(policy||{}), KUTTYAI_READY_FILE: readyFile, ELECTRON_DISABLE_SECURITY_WARNINGS: '1' },
         detached: false,
-        cwd: process.cwd()
+        cwd
       })
     } catch (e) {
       console.error('Failed to launch Electron:', e.message)
