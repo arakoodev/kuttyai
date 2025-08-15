@@ -6,6 +6,26 @@ const VIEW_FILE = process.env.KUTTYAI_VIEW_FILE
 const POLICY = safeParse(process.env.KUTTYAI_POLICY_JSON) || { allowDomains: [], bannedTerms: [] }
 const READY_FILE = process.env.KUTTYAI_READY_FILE
 
+// Exit if the parent process dies
+const parentPid = process.ppid
+function checkParent(){
+  if (!parentPid) return
+  try {
+    process.kill(parentPid, 0)
+  } catch {
+    app.quit()
+    process.exit(0)
+  }
+}
+setInterval(checkParent, 2000)
+if (process.stdin) {
+  process.stdin.on('end', () => {
+    app.quit()
+    process.exit(0)
+  })
+  process.stdin.resume()
+}
+
 function safeParse(s){ try { return JSON.parse(s || '{}') } catch { return null } }
 
 function writeReadyOnce(){
